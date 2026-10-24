@@ -1,0 +1,24 @@
+name: Propuesta de capacidad
+description: Proponer una mejora acotada
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema mecánico o de flujo que resuelve
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación y casos negativos
+    validations:
+      required: true
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Componentes, contratos o ADR afectados
+  - type: textarea
+    id: fixtures
+    attributes:
+      label: Procedencia y licencia de ejemplos
+      description: No adjuntar documentos privados o sin permiso de publicación.

@@ -1,0 +1,32 @@
+name: Reporte de error
+description: Reportar un comportamiento incorrecto usando datos sintéticos
+body:
+  - type: markdown
+    attributes:
+      value: |
+        No incluyas claves, datos personales, rutas privadas, planos ni archivos CAD confidenciales. Para vulnerabilidades usa Security Advisories.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Comportamiento observado y esperado
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Pasos de reproducción
+      description: Adjunta solo un fixture sintético mínimo si es necesario.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Versiones relevantes
+      description: Versión de AUTOSOLID, Python, Windows y CAD si aplica. No incluyas rutas ni información de cuentas.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Diagnóstico redactado
+      description: Elimina secretos, rutas de usuario y datos privados.

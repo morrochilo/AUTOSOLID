@@ -1,0 +1,50 @@
+"""Initial CAD domain contract and deterministic validators."""
+
+from .models import (
+    SCHEMA_VERSION,
+    Assumption,
+    AxisReference,
+    CadSpec,
+    ClosedLoopConstraint,
+    CoincidentAxisConstraint,
+    Diagnostic,
+    Dimension,
+    Evidence,
+    ExtrudeFeature,
+    LineEntity,
+    Parameter,
+    PlaneReference,
+    Question,
+    RevolveFeature,
+    Sketch,
+    Source,
+    Tolerance,
+    Units,
+)
+from .schema import cad_spec_json_schema, diagnostic_json_schema
+from .validation import validate_spec
+
+__all__ = [
+    "SCHEMA_VERSION",
+    "Assumption",
+    "AxisReference",
+    "CadSpec",
+    "ClosedLoopConstraint",
+    "CoincidentAxisConstraint",
+    "Diagnostic",
+    "Dimension",
+    "Evidence",
+    "ExtrudeFeature",
+    "LineEntity",
+    "Parameter",
+    "PlaneReference",
+    "Question",
+    "RevolveFeature",
+    "Sketch",
+    "Source",
+    "Tolerance",
+    "Units",
+    "cad_spec_json_schema",
+    "diagnostic_json_schema",
+    "validate_spec",
+]

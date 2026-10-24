@@ -1,0 +1,24 @@
+schema_version: 1
+status: template
+machine:
+  windows_version: PENDING
+  cpu: PENDING
+  ram_gb: PENDING
+  gpu: PENDING
+  vram_mib: PENDING
+toolchain:
+  python: PENDING
+  node: PENDING
+  dotnet_sdk: PENDING
+cad:
+  solidworks_version: PENDING
+  solidworks_api_version: PENDING
+  autocad_version: OPTIONAL_PENDING
+models:
+  - id: MODEL_ID
+    base_path: LOCAL_PATH_NOT_COMMITTED
+    adapter_path: LOCAL_PATH_NOT_COMMITTED
+    license: PENDING
+    status: UNVERIFIED
+privacy:
+  external_providers_allowed: PENDING
