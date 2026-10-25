@@ -11,15 +11,19 @@ license = { file = "LICENSE" }
 requires-python = ">=3.11,<3.15"
 dependencies = [
     "pydantic>=2.11,<3",
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.30,<1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4",
+    "httpx>=0.27,<1",
 ]
 
 [project.scripts]
 autosolid-schema = "autosolid.cad.schema:main"
+autosolid-api = "autosolid.api:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

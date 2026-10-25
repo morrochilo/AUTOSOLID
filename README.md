@@ -1,10 +1,13 @@
 # AUTOSOLID
 
+[![CI](https://github.com/morrochilo/AUTOSOLID/actions/workflows/ci.yml/badge.svg)](https://github.com/morrochilo/AUTOSOLID/actions/workflows/ci.yml)
+[![Licencia MIT](https://img.shields.io/badge/licencia-MIT-green.svg)](LICENSE)
+
 Sistema local asistido por IA para convertir planos PDF, texto e imágenes en piezas mecánicas paramétricas de SolidWorks, con revisión humana y trazabilidad geométrica.
 
 ## Estado
 
-**Fase actual: desarrollo inicial.** Existe un núcleo `CadSpec` en auditoría con perfiles de líneas, extrusión, revolución y pruebas. PDF, MCP, interfaz y construcción en SolidWorks/AutoCAD todavía no están implementados ni verificados. No se afirma precisión mecánica de extremo a extremo.
+**Fase actual: desarrollo inicial.** El núcleo `CadSpec` y el servicio local de proyectos/API están auditados. PDF, MCP, interfaz y construcción en SolidWorks/AutoCAD todavía no están implementados ni verificados. No se afirma precisión mecánica de extremo a extremo.
 
 El objetivo no es que un modelo “adivine” una pieza y la escriba directamente en SolidWorks. El sistema debe extraer evidencia, construir una especificación CAD explícita, validarla, permitir corregirla y recién entonces crear el archivo nativo.
 
@@ -74,6 +77,16 @@ autosolid-schema > cadspec.schema.json
 ```
 
 El esquema generado es un artefacto local; no debe confundirse con una pieza CAD ni con una validación de SolidWorks.
+
+## API local de proyectos
+
+```bash
+autosolid-api
+# http://127.0.0.1:8000/api/v1/health
+# Documentación interactiva: http://127.0.0.1:8000/docs
+```
+
+La API crea proyectos, valida especificaciones y guarda revisiones inmutables en `.autosolid/`. Usar `AUTOSOLID_DATA_DIR` para otro directorio local. No exponer el servicio a Internet; todavía no incorpora autenticación remota ni construcción CAD.
 
 ## Privacidad y seguridad
 
