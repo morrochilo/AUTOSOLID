@@ -6,7 +6,7 @@ AUTOSOLID será una aplicación local para Windows con cuatro puntos de entrada:
 
 ```mermaid
 flowchart LR
-    UI[Interfaz local React] --> APP[Servicio de aplicación FastAPI]
+    UI[Interfaz local web] --> APP[Servicio de aplicación FastAPI]
     OC[OpenCode / otro cliente MCP] --> MCP[Adaptador MCP]
     API[CLI / lotes] --> APP
     MCP --> APP
@@ -40,7 +40,7 @@ flowchart LR
 
 ### Interfaz local
 
-React + TypeScript, empaquetada inicialmente como aplicación web local servida por el backend. No se añade Electron/Tauri hasta que exista una necesidad demostrada.
+La interfaz mínima actual (tareas 005–008) es HTML, CSS y JavaScript sin build, servida por FastAPI, sin Node, bundler, CDN ni recursos externos. React + TypeScript sigue siendo una opción para cuando la vista de fuentes, evidencias y previsualización 3D justifique el toolchain; no se añadió en esta iteración. No se añade Electron/Tauri hasta que exista una necesidad demostrada.
 
 La vista principal tendrá cuatro zonas:
 
@@ -49,7 +49,9 @@ La vista principal tendrá cuatro zonas:
 3. **Diseño:** árbol de operaciones y editor de parámetros/croquis.
 4. **Resultado:** previsualización 3D, comparación con las vistas y reporte de validación.
 
-La acción `Construir en SolidWorks` permanece deshabilitada si existen errores o ambigüedades críticas. Toda corrección humana se guarda como un nuevo evento, sin sobrescribir la evidencia original.
+Estado actual: la pantalla cubre proyectos, editor JSON de `CadSpec`, validación, guardado, diagnósticos, preguntas, visor, un panel de fuentes con carga, listado, descarga y referencia manual al editor, y un panel de aprobación de diseño con revisor, confirmación, estado vigente/obsoleto e historial. La zona de fuente todavía no muestra el documento, sus páginas ni evidencias resaltadas; el resultado 3D, la aprobación de construcción y el botón de construcción tampoco existen y no se simulan. Los recursos se sirven con CSP restrictiva y el servidor escucha en loopback por defecto.
+
+Cuando exista, la acción `Construir en SolidWorks` permanecerá deshabilitada si existen errores o ambigüedades críticas. Toda corrección humana se guarda como un nuevo evento, sin sobrescribir la evidencia original.
 
 ### Servicio de aplicación
 
@@ -57,11 +59,15 @@ Python y FastAPI, con modelos Pydantic para los contratos. Orquesta trabajos, ve
 
 SQLite conserva proyectos, estados, configuraciones no secretas y metadatos. Los PDF, imágenes, JSON, DXF, STEP, reportes y SLDPRT se guardan como artefactos content-addressed o con identificadores inmutables.
 
+Estado de implementación (tareas 006, 008 y 009): los PDF, imágenes y textos UTF-8 subidos se guardan por SHA-256 en `AUTOSOLID_DATA_DIR/artifacts/` y se indexan en SQLite v4. Hay deduplicación por proyecto, límite de 20 MiB y lectura con verificación de integridad. El MIME se deriva por fuente y no por el primer proyecto que cargó el blob. Las aprobaciones de diseño se guardan en una tabla append-only con triggers de inmutabilidad y clave única `(proyecto, revisión, alcance)`; su estado se calcula en una instantánea coherente contra la revisión vigente. Todavía no se guardan `DrawingSpec`, DXF, STEP, reportes ni SLDPRT, y no existe recolector de blobs huérfanos.
+
 ### Adaptador MCP
 
 Servidor MCP local, preferiblemente `stdio` para OpenCode. Expone herramientas pequeñas y con esquemas estrictos; no duplica reglas del dominio.
 
 MCP se elige porque es una interfaz estándar para clientes compatibles y OpenCode admite servidores locales y remotos. No sustituye la interfaz gráfica ni el servicio de aplicación.
+
+Estado de implementación (tareas 003, 007 y 008): hay once herramientas de solo lectura o escritura controlada sobre proyectos, revisiones, fuentes y aprobaciones. Las herramientas `autosolid_source_*` listan metadatos y leen texto UTF-8; no suben archivos, no devuelven PDF/imágenes y no interpretan el contenido. El texto de una fuente se considera dato no confiable y se limita por caracteres. `autosolid_approval_list` y `autosolid_approval_get` solo consultan aprobaciones; no existe herramienta MCP para aprobar, revocar o consumir.
 
 ### Agente SolidWorks
 
@@ -74,7 +80,7 @@ Proceso Windows aislado en C#, usando la API COM oficial de SolidWorks/Interop. 
 - Exporta reportes y artefactos de comprobación.
 - Usa una versión de .NET y de Interop fijada tras probar la versión real de SolidWorks en la iteración 0.
 
-El agente no contiene prompts ni llama a modelos. Recibe un `CadSpec` validado y una aprobación.
+El agente no contiene prompts ni llama a modelos. Recibe un `CadSpec` validado y una aprobación de construcción con destino, expiración y consumo único; esa aprobación todavía no está implementada.
 
 ### Enrutador de modelos
 
@@ -89,9 +95,13 @@ Adaptadores previstos:
 
 Cada respuesta registra proveedor, modelo, revisión/adaptador, parámetros, plantilla de prompt, tokens, latencia y hash de la entrada. No se guardan secretos en el historial.
 
+Estado de implementación (tarea 004): existen el contrato de completion y el adaptador OpenAI-compatible descritos en [`README.md`](../README.md#proveedores-de-modelos). Todavía no hay enrutamiento por capacidad, selección de modelo, integración con la aplicación ni registro de prompts/hash. El proveedor simulado cubre pruebas locales.
+
 **OpenCode:** cuando sea el cliente MCP, su propio modelo —incluido uno gratuito disponible allí— puede llamar a las herramientas AUTOSOLID. Esto no implica que esos modelos sean reutilizables como API dentro de la interfaz; para eso se necesita un proveedor directo o local.
 
 ## 3. Pipeline de PDF
+
+Estado de implementación (tarea 006): el paso 1 existe de forma parcial —se calcula el hash y se conserva el original—, pero no hay detección de páginas, extracción de texto/vectores, rasterizado, segmentación, asociación de cotas ni cálculo de escala. Los pasos 2–10 de la ruta A siguen siendo objetivos.
 
 ### Ruta A: extracción propia, preferente para PDF vectorial
 
@@ -167,14 +177,16 @@ stateDiagram-v2
 
 Las transiciones se registran. Reintentar un trabajo utiliza una clave de idempotencia para no duplicar archivos.
 
+La tarea 008 implementa una **aprobación de diseño** separada de este diagrama: se registra contra una revisión y su SHA-256, se consulta con estado `valid`/`stale` y no provoca la transición a `BUILDING`. La transición `SPEC_READY → APPROVED` sigue reservada para una futura aprobación de construcción con destino, expiración y consumo único.
+
 ## 6. Estructura futura del repositorio
 
-No se creará código hasta aprobar la iteración correspondiente.
+La estructura siguiente es una referencia para una separación futura en aplicaciones y servicios. El código actual vive en `src/autosolid/` (`cad`, `projects`, `artifacts`, `api`, `mcp`, `providers`) y mantiene estos límites; la interfaz actual es HTML/JS servida por `api`.
 
 ```text
 autosolid/
   apps/
-    web/                  # React/TypeScript
+    web/                  # interfaz web; HTML/JS actual, React si se justifica
   services/
     api/                  # FastAPI y casos de uso
     mcp/                  # fachada MCP
@@ -201,7 +213,7 @@ Los límites de paquetes pueden simplificarse al inicio; lo importante es que el
 - PDF e imágenes tratados como datos no confiables; su texto nunca se interpreta como instrucciones del sistema.
 - Aprobación explícita para construir, exportar, sobrescribir o enviar documentos a un proveedor externo.
 - Modo local para planos confidenciales y aviso visible antes de usar nube.
-- Límites de tamaño/páginas, cancelación de trabajos, timeouts y cuarentena de documentos problemáticos.
+- Límites de tamaño/páginas, cancelación de trabajos, timeouts y cuarentena de documentos problemáticos. Estado actual: hay un límite de 20 MiB por fuente y rechazo por firma/codificación, pero no hay límite de páginas, cancelación, timeouts de análisis ni cuarentena.
 - Backups y nombres únicos; SolidWorks y AutoCAD no operan sobre el único original.
 - Licencias de modelos, pesos, LoRA, datos de entrenamiento y bibliotecas registradas antes de distribuir.
 

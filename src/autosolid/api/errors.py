@@ -10,12 +10,19 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from autosolid.projects.exceptions import (
+    ApprovalBlockedError,
+    ApprovalHashMismatchError,
+    ApprovalNotFoundError,
     CadspecNotFoundError,
+    InvalidApprovalError,
     InvalidProjectNameError,
     InvalidRevisionError,
+    InvalidSourceError,
     InvalidSpecError,
     ProjectNotFoundError,
     RevisionConflictError,
+    SourceNotFoundError,
+    SourceTooLargeError,
     StoreError,
 )
 
@@ -54,11 +61,17 @@ def error_response(
     )
 
 
-def _diagnostic_details(error: InvalidSpecError) -> list[dict[str, Any]]:
+def _diagnostic_details_from_list(
+    diagnostics: list[Any],
+) -> list[dict[str, Any]]:
     return [
         diagnostic.model_dump(mode="json")
-        for diagnostic in error.diagnostics
+        for diagnostic in diagnostics
     ]
+
+
+def _diagnostic_details(error: InvalidSpecError) -> list[dict[str, Any]]:
+    return _diagnostic_details_from_list(error.diagnostics)
 
 
 def register_error_handlers(app: FastAPI) -> None:
@@ -126,6 +139,97 @@ def register_error_handlers(app: FastAPI) -> None:
         _: Request, error: InvalidRevisionError
     ) -> JSONResponse:
         return error_response(422, "INVALID_EXPECTED_REVISION", error.message)
+
+    @app.exception_handler(InvalidSourceError)
+    async def _invalid_source(
+        _: Request, error: InvalidSourceError
+    ) -> JSONResponse:
+        return error_response(
+            422,
+            "INVALID_SOURCE",
+            error.message,
+            {"reason": error.reason},
+        )
+
+    @app.exception_handler(SourceTooLargeError)
+    async def _source_too_large(
+        _: Request, error: SourceTooLargeError
+    ) -> JSONResponse:
+        return error_response(
+            413,
+            "SOURCE_TOO_LARGE",
+            "La fuente supera el límite permitido.",
+            {
+                "limit_bytes": error.limit_bytes,
+                "actual_bytes": error.actual_bytes,
+            },
+        )
+
+    @app.exception_handler(SourceNotFoundError)
+    async def _source_not_found(
+        _: Request, error: SourceNotFoundError
+    ) -> JSONResponse:
+        return error_response(
+            404,
+            "SOURCE_NOT_FOUND",
+            "La fuente solicitada no existe en el proyecto.",
+            {
+                "project_id": error.project_id,
+                "source_id": error.source_id,
+            },
+        )
+
+    @app.exception_handler(InvalidApprovalError)
+    async def _invalid_approval(
+        _: Request, error: InvalidApprovalError
+    ) -> JSONResponse:
+        return error_response(
+            422,
+            "INVALID_APPROVAL",
+            error.message,
+            {"reason": error.reason},
+        )
+
+    @app.exception_handler(ApprovalNotFoundError)
+    async def _approval_not_found(
+        _: Request, error: ApprovalNotFoundError
+    ) -> JSONResponse:
+        return error_response(
+            404,
+            "APPROVAL_NOT_FOUND",
+            "La aprobación solicitada no existe en el proyecto.",
+            {
+                "project_id": error.project_id,
+                "approval_id": error.approval_id,
+            },
+        )
+
+    @app.exception_handler(ApprovalHashMismatchError)
+    async def _approval_hash_mismatch(
+        _: Request, error: ApprovalHashMismatchError
+    ) -> JSONResponse:
+        return error_response(
+            409,
+            "APPROVAL_HASH_MISMATCH",
+            "El hash indicado no coincide con el de la revisión.",
+            {
+                "project_id": error.project_id,
+                "revision": error.revision,
+                "provided_sha256": error.provided_sha256,
+                "current_sha256": error.current_sha256,
+            },
+        )
+
+    @app.exception_handler(ApprovalBlockedError)
+    async def _approval_blocked(
+        _: Request, error: ApprovalBlockedError
+    ) -> JSONResponse:
+        return error_response(
+            409,
+            "APPROVAL_BLOCKED",
+            "La revisión no cumple las condiciones para aprobarse.",
+            _diagnostic_details_from_list(error.diagnostics),
+        )
 
     @app.exception_handler(StoreError)
     async def _store_error(_: Request, __: StoreError) -> JSONResponse:

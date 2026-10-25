@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "autosolid": {
+      "type": "local",
+      "command": ["<PYTHON>", "-m", "autosolid.mcp"],
+      "cwd": "<RUTA_AUTOSOLID>",
+      "enabled": true,
+      "environment": {
+        "AUTOSOLID_DATA_DIR": "<RUTA_DATOS_AUTOSOLID>",
+        "PYTHONPATH": "<RUTA_AUTOSOLID>/src"
+      }
+    }
+  }
+}

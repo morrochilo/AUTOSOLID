@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>AUTOSOLID · Revisión local</title>
+  <link rel="stylesheet" href="/ui/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">AS</span>
+      <div>
+        <h1>AUTOSOLID</h1>
+        <p>Revisión local de <code>CadSpec</code></p>
+      </div>
+    </div>
+    <div id="health" class="health health-pending" role="status" aria-live="polite">
+      Comprobando servicio…
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" aria-label="Proyectos">
+      <form id="create-project-form" class="create-form">
+        <label for="project-name">Nuevo proyecto</label>
+        <div class="create-row">
+          <input
+            id="project-name"
+            name="name"
+            type="text"
+            maxlength="80"
+            placeholder="Ej. Bancada"
+            autocomplete="off"
+            required
+          >
+          <button id="create-project" class="button primary" type="submit">
+            Crear
+          </button>
+        </div>
+        <p class="hint">Los proyectos se guardan en el directorio local configurado.</p>
+      </form>
+
+      <div class="list-head">
+        <h2>Proyectos</h2>
+        <button id="refresh-projects" class="button ghost small" type="button">
+          Actualizar
+        </button>
+      </div>
+      <nav id="project-list" class="project-list" aria-label="Lista de proyectos"></nav>
+      <p id="project-empty" class="empty-list">Todavía no hay proyectos.</p>
+
+      <p class="notice">
+        Las fuentes se guardan sin interpretar. La extracción de PDF, escalas y
+        geometría llegará con la iteración 2.
+      </p>
+    </aside>
+
+    <main id="main" class="main">
+      <section id="empty-state" class="panel empty-state">
+        <p class="eyebrow">Espacio de trabajo</p>
+        <h2>Selecciona un proyecto</h2>
+        <p>
+          Crea un proyecto a la izquierda o elige uno existente para revisar su
+          especificación, validarla y guardar una nueva revisión.
+        </p>
+      </section>
+
+      <section id="workspace" class="workspace" hidden>
+        <div class="project-head">
+          <div>
+            <p class="eyebrow">Proyecto</p>
+            <h2 id="project-title">—</h2>
+            <p id="project-meta" class="meta"></p>
+          </div>
+          <div class="revision-box">
+            <span class="revision-label">Revisión</span>
+            <strong id="spec-revision">—</strong>
+            <span id="spec-hash" class="hash">Sin hash</span>
+          </div>
+        </div>
+
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+
+        <div class="toolbar" aria-label="Acciones sobre la especificación">
+          <button id="reload-spec" class="button ghost" type="button">
+            Cargar actual
+          </button>
+          <button id="new-template" class="button ghost" type="button">
+            Plantilla vacía
+          </button>
+          <span class="spacer"></span>
+          <button id="validate-spec" class="button secondary" type="button">
+            Validar
+          </button>
+          <button id="save-spec" class="button primary" type="button">
+            Guardar revisión
+          </button>
+        </div>
+
+        <section class="panel sources-panel" aria-labelledby="sources-title">
+          <div class="panel-head">
+            <h3 id="sources-title">Fuentes del proyecto</h3>
+            <span id="source-count" class="count">0</span>
+          </div>
+          <form id="source-form" class="source-form">
+            <div class="source-picker">
+              <label for="source-file">Archivo</label>
+              <input
+                id="source-file"
+                name="source"
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,.json"
+              >
+              <button id="upload-source" class="button secondary" type="submit">
+                Añadir fuente
+              </button>
+            </div>
+            <p class="hint">
+              PDF, imagen o texto UTF-8, hasta 20 MiB. Se guarda con SHA-256 y no
+              se interpreta todavía. La referencia al <code>CadSpec</code> se
+              añade manualmente.
+            </p>
+          </form>
+          <ul id="sources" class="source-list" aria-label="Fuentes cargadas"></ul>
+        </section>
+
+        <div class="editor-grid">
+          <section class="panel editor-panel">
+            <div class="panel-head">
+              <h3><code>CadSpec</code> JSON</h3>
+              <span id="editor-state" class="tiny">Sin cargar</span>
+            </div>
+            <label class="sr-only" for="spec-editor">
+              Especificación CadSpec en JSON
+            </label>
+            <textarea
+              id="spec-editor"
+              spellcheck="false"
+              autocomplete="off"
+              wrap="off"
+              aria-describedby="editor-help"
+            ></textarea>
+            <p id="editor-help" class="hint">
+              El editor no guarda automáticamente. Validar no persiste cambios.
+            </p>
+          </section>
+
+          <div class="side-panels">
+            <section class="panel">
+              <div class="panel-head">
+                <h3>Diagnósticos</h3>
+                <span id="diagnostic-count" class="count">0</span>
+              </div>
+              <ul id="diagnostics" class="items"></ul>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h3>Preguntas abiertas</h3>
+                <span id="question-count" class="count">0</span>
+              </div>
+              <ul id="questions" class="items"></ul>
+            </section>
+          </div>
+        </div>
+
+        <section class="panel approval-panel" aria-labelledby="approval-title">
+          <div class="panel-head">
+            <h3 id="approval-title">Aprobación de diseño</h3>
+            <span id="approval-state" class="state-badge">Sin revisión</span>
+          </div>
+          <div class="approval-body">
+            <div class="approval-main">
+              <p class="hint approval-scope">
+                Aprobar confirma solo la revisión y el hash indicados. No construye,
+                no verifica SolidWorks ni autoriza una construcción futura.
+              </p>
+              <p id="approval-target" class="approval-target"></p>
+              <form id="approval-form" class="approval-form">
+                <label for="approver">Revisor</label>
+                <input
+                  id="approver"
+                  name="approved_by"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="name"
+                  required
+                >
+                <label for="approval-note">Nota (opcional)</label>
+                <textarea
+                  id="approval-note"
+                  name="note"
+                  maxlength="2000"
+                  rows="2"
+                  spellcheck="true"
+                ></textarea>
+                <label class="check">
+                  <input id="approval-confirm" type="checkbox">
+                  <span>
+                    Confirmo que revisé la revisión
+                    <strong id="confirm-revision">—</strong> y su hash.
+                  </span>
+                </label>
+                <div class="approval-actions">
+                  <button
+                    id="approve-revision"
+                    class="button primary"
+                    type="submit"
+                    disabled
+                  >
+                    Aprobar revisión
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="approval-history">
+              <div class="panel-head subhead">
+                <h4>Historial</h4>
+                <span id="approval-count" class="count">0</span>
+              </div>
+              <ul id="approvals" class="items approvals"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel viewer-panel">
+          <div class="panel-head">
+            <h3>Visor JSON</h3>
+            <span class="tiny">Última carga, validación o guardado</span>
+          </div>
+          <pre id="spec-viewer" class="viewer">{}</pre>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <footer class="footer">
+    Servicio local sin autenticación remota. No exponer fuera de loopback.
+  </footer>
+
+  <script src="/ui/app.js" defer></script>
+</body>
+</html>

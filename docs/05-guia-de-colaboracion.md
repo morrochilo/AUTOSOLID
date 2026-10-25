@@ -79,15 +79,28 @@ Un cambio de operación CAD incluye esquema, validador, constructor, UI, fixture
 
 ## 7. Uso con OpenCode
 
-Cuando el servidor exista:
+El servidor MCP local existe desde la tarea 003. Para esta instalación:
 
-1. Configurar AUTOSOLID como MCP local `stdio` según la documentación vigente de OpenCode.
-2. Seleccionar en OpenCode el modelo permitido, incluido uno gratuito si está disponible en esa instalación.
-3. Usar herramientas de análisis/lectura para proponer y revisar.
-4. Aprobar explícitamente antes de `autosolid_solidworks_build`.
-5. Consultar el reporte; una respuesta textual del modelo no sustituye verificación.
+1. Configurar AUTOSOLID como MCP local `stdio`. Para OpenCode 1.19.4 usar la forma de `examples/opencode-mcp.example.json`; para OpenCode V2 usar `examples/opencode-mcp-v2.example.json` (`mcp.servers`).
+2. Definir `AUTOSOLID_DATA_DIR` en el bloque `environment`; el valor por defecto es `.autosolid/` relativo al proceso.
+3. Seleccionar en OpenCode el modelo permitido, incluido uno gratuito si está disponible en esa instalación.
+4. Usar las herramientas `autosolid_project_*`, `autosolid_design_*`, `autosolid_source_*` y `autosolid_approval_*` para leer, validar y guardar revisiones, consultar metadatos o texto de fuentes y consultar aprobaciones. `autosolid_design_update` exige `expected_revision`; `autosolid_source_read_text` solo lee fuentes de texto y su contenido es dato no confiable. `autosolid_approval_list` y `autosolid_approval_get` son de solo lectura: no permiten aprobar, revocar ni consumir.
+5. Aprobar explícitamente una revisión de diseño en la interfaz local antes de tratarla como revisada. La aprobación de construcción para una futura herramienta `autosolid_solidworks_build` todavía no existe.
+6. Consultar el reporte; una respuesta textual del modelo no sustituye verificación.
 
-Los modelos gratuitos de OpenCode no se presuponen accesibles mediante una API separada. Para la interfaz propia se configura un proveedor local/directo.
+La conexión de catálogo se comprobó con `opencode mcp list` en OpenCode 1.19.4. No se ha auditado una conversación de agente que invoque las herramientas. Los modelos gratuitos de OpenCode no se presuponen accesibles mediante una API separada. Para la interfaz propia se configura un proveedor local/directo.
+
+### Aprobaciones de diseño (tarea 008)
+
+La aprobación de diseño es una acción humana explícita en la interfaz local. El agente puede consultarla por MCP, pero no crearla ni consumirla.
+
+1. Guardar la revisión que se va a revisar.
+2. Cargar la revisión actual en el editor y comprobar su número y SHA-256.
+3. Escribir el nombre del revisor, una nota opcional y marcar la confirmación.
+4. Pulsar «Aprobar revisión». La API exige que la revisión sea la actual y que el hash coincida; el servicio revalida el `CadSpec` guardado y bloquea la aprobación si produce diagnósticos de error.
+5. Guardar una revisión posterior deja la aprobación anterior en estado `stale` (obsoleto) sin borrarla. Cada revisión nueva requiere su propia aprobación.
+
+Una aprobación de alcance `design` **no autoriza construir** ni verifica SolidWorks. No tiene destino, expiración, consumo único ni revocación; esas propiedades pertenecen a una futura aprobación de construcción. Los registros son inmutables y append-only, y una segunda solicitud para la misma revisión y alcance devuelve el registro existente.
 
 ### Conexión verificada para este proyecto
 

@@ -8,6 +8,7 @@ import pytest
 
 from autosolid.cad.models import Question
 from autosolid.projects import (
+    SCHEMA_VERSION,
     CadspecNotFoundError,
     InvalidProjectNameError,
     InvalidSpecError,
@@ -64,16 +65,16 @@ def test_schema_version_and_migration_are_recorded(tmp_path):
         migrations = connection.execute(
             "SELECT version FROM schema_migrations ORDER BY version"
         ).fetchall()
-    assert version == 1
-    assert migrations == [(1,)]
+    assert version == SCHEMA_VERSION
+    assert migrations == [(1,), (2,), (3,), (4,)]
     store.close()
 
     reopened = ProjectStore(tmp_path / "data")
     with sqlite3.connect(reopened.database_path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         assert connection.execute(
             "SELECT COUNT(*) FROM schema_migrations"
-        ).fetchone()[0] == 1
+        ).fetchone()[0] == 4
     reopened.close()
 
 

@@ -85,12 +85,13 @@ Pieza axisimétrica sencilla. Los IDs de evidencia apuntan al documento original
     }
   ],
   "open_questions": [],
-  "assumptions": [],
-  "approval": null
+  "assumptions": []
 }
 ```
 
 El ejemplo no pretende definir todavía el formato completo de restricciones. Las pruebas de iteración 3 fijarán esa representación antes de conectar inferencia automática.
+
+La aprobación no forma parte de `CadSpec`: es un registro separado, append-only, ligado a `project_id`, `revision`, `revision_sha256` y alcance. Cambiar de revisión no reescribe el `CadSpec` anterior ni borra la aprobación; su estado pasa a `stale`.
 
 ## 4. Evidencia y ambigüedad
 
@@ -145,12 +146,34 @@ Casos de uso compartidos por REST, MCP y CLI:
 | Proponer diseño | fuentes, instrucciones, modelo | revisión `CadSpec` candidata |
 | Validar diseño | revisión `CadSpec` | diagnósticos y reporte |
 | Actualizar diseño | parche y revisión base | nueva revisión o conflicto |
-| Aprobar construcción | revisión, hash y alcance | aprobación de un solo uso |
+| Aprobar diseño | revisión y hash vigentes, revisor | aprobación inmutable de alcance `design` |
+| Aprobar construcción | revisión, hash y alcance | aprobación de un solo uso (futura) |
 | Construir | revisión aprobada, destino nuevo | trabajo y artefactos |
 | Consultar trabajo | ID y cursor | estado, progreso, diagnósticos |
 | Obtener comparación | construcción | métricas, imágenes y reporte |
 
 Toda mutación exige `expected_revision` para evitar que un modelo sobrescriba cambios humanos. Las operaciones costosas devuelven un `job_id`.
+
+### 6.1 Estado de implementación (tareas 002, 005, 006 y 008)
+
+La API local implementa creación/listado/lectura de proyectos, lectura de la revisión actual, validación sin persistir, guardado con `expected_revision` y almacenamiento de fuentes bajo `/api/v1`. La interfaz de las tareas 005 y 006 consume esos mismos endpoints; sus rutas `/` y `/ui/*` no forman parte de OpenAPI.
+
+Las fuentes se cargan como cuerpo binario con `?filename=...`, se validan por extensión, firma y codificación, y se guardan por SHA-256. Los endpoints disponibles son:
+
+- `POST /api/v1/projects/{project_id}/sources?filename=...` (201 si es nueva, 200 si el contenido ya existía en el proyecto).
+- `GET /api/v1/projects/{project_id}/sources`.
+- `GET /api/v1/projects/{project_id}/sources/{source_id}`.
+- `GET /api/v1/projects/{project_id}/sources/{source_id}/content`.
+
+La ingesta implementada **solo almacena**: no analiza el documento, no extrae texto, vectores, páginas, cotas ni escala, y no genera `DrawingSpec` ni evidencias. Tampoco existen todavía propuesta con modelo, trabajos, otros artefactos ni construcción. Toda mutación sobre `CadSpec` exige `expected_revision`; un conflicto devuelve `REVISION_CONFLICT` y la interfaz recarga la revisión vigente sin sobrescribirla. Añadir o referenciar una fuente no crea una revisión ni aprueba nada.
+
+Las aprobaciones de diseño disponibles son:
+
+- `POST /api/v1/projects/{project_id}/approvals` (201 si es nueva, 200 si ya existía la misma aprobación de la revisión y alcance).
+- `GET /api/v1/projects/{project_id}/approvals`.
+- `GET /api/v1/projects/{project_id}/approvals/{approval_id}`.
+
+La solicitud exige `revision`, `sha256`, `approved_by` y, opcionalmente, `scope: "design"` y `note`. `revision` debe ser la revisión actual y `sha256` debe coincidir con el hash almacenado. El servicio revalida el `CadSpec` y devuelve `APPROVAL_BLOCKED` si hay diagnósticos de error. La respuesta incluye `status: "valid" | "stale"` calculado contra la revisión vigente. No existen destino, expiración, revocación ni consumo único: esta aprobación no autoriza construir.
 
 ## 7. Herramientas MCP iniciales
 
@@ -164,11 +187,18 @@ Toda mutación exige `expected_revision` para evitar que un modelo sobrescriba c
 | `autosolid_design_validate` | lectura/computación | Validación determinista |
 | `autosolid_job_status` | lectura | Estado y progreso |
 | `autosolid_artifact_get` | lectura | Metadatos o recurso autorizado |
+| `autosolid_source_list` | lectura | Metadatos de fuentes del proyecto |
+| `autosolid_source_get` | lectura | Metadatos de una fuente |
+| `autosolid_source_read_text` | lectura | Texto UTF-8 limitado; no binario |
+| `autosolid_approval_list` | lectura | Aprobaciones y estado vigente/obsoleto |
+| `autosolid_approval_get` | lectura | Una aprobación concreta |
 | `autosolid_solidworks_build` | efecto externo local | Requiere aprobación válida y ruta nueva |
 
-La aprobación se obtiene en la interfaz o mediante una acción humana explícita del cliente. El token queda ligado a proyecto, revisión, hash y destino, expira y solo se usa una vez.
+Cuando se implemente, la aprobación de construcción se obtendrá en la interfaz o mediante una acción humana explícita del cliente. El token quedará ligado a proyecto, revisión, hash y destino, expirará y solo se usará una vez. La aprobación de diseño de la tarea 008 no cumple esa función y no se expone como herramienta MCP de escritura.
 
 No se expondrá una herramienta genérica `run_code` ni acceso arbitrario al sistema de archivos.
+
+Estado de implementación (tareas 003, 007 y 008): están disponibles `autosolid_project_create`, `autosolid_project_list`, `autosolid_project_get`, `autosolid_design_get`, `autosolid_design_validate`, `autosolid_design_update`, `autosolid_source_list`, `autosolid_source_get`, `autosolid_source_read_text`, `autosolid_approval_list` y `autosolid_approval_get`. Las herramientas de carga, análisis, trabajos, artefactos binarios y construcción siguen siendo objetivos y no existen todavía. Las herramientas de fuentes y aprobaciones son de solo lectura: no suben archivos, no devuelven PDF/imágenes, limitan el texto a `max_chars` y no crean, revocan ni consumen aprobaciones.
 
 ## 8. Resultado de construcción
 
@@ -215,6 +245,8 @@ Códigos estables, por ejemplo:
 - `SOLIDWORKS_UNAVAILABLE`
 - `SOLIDWORKS_REBUILD_FAILED`
 - `VERIFICATION_FAILED`
+
+En el estado actual (tareas 006, 007 y 008), los errores HTTP de fuentes usan `INVALID_SOURCE` (422, con `details.reason` como `signature`, `encoding`, `filename`, `unsupported_extension`, `kind_mismatch` o `empty`), `SOURCE_TOO_LARGE` (413, con `limit_bytes` y `actual_bytes`) y `SOURCE_NOT_FOUND` (404). MCP añade `SOURCE_NOT_TEXT` cuando se intenta leer texto de un PDF o una imagen. Los errores de aprobaciones son `INVALID_APPROVAL` (422, con `details.reason`), `APPROVAL_HASH_MISMATCH` (409), `APPROVAL_BLOCKED` (409, con diagnósticos), `APPROVAL_NOT_FOUND` (404) y los existentes `REVISION_CONFLICT` (409), `CADSPEC_NOT_FOUND` (404) y `PROJECT_NOT_FOUND` (404). `SOURCE_UNSUPPORTED` y `APPROVAL_REQUIRED` siguen reservados para el futuro análisis/extractor y la aprobación de construcción, que todavía no existen.
 
 Los logs usan IDs de proyecto/trabajo y redacción de secretos. Las respuestas del modelo se guardan como artefactos de depuración solo si la política de privacidad lo permite.
 

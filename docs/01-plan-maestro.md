@@ -6,7 +6,9 @@
 - El corpus, las rutas/licencias de pesos y la comprobación runtime de CAD siguen pendientes.
 - Tarea 001 aceptada: núcleo `CadSpec` revisado, 56 pruebas y 11.000 casos geométricos adicionales superados; alcance limitado a líneas/extrusión/revolución.
 - Tarea 002 aceptada: proyectos SQLite, revisiones inmutables y API FastAPI; 86 pruebas y flujo HTTP real superados.
-- Ninguna iteración se considera completada todavía.
+- Tareas 003–008 implementadas localmente: MCP con 11 herramientas, proveedores, interfaz, fuentes/artefactos y aprobaciones de diseño. Suite actual: 254 pruebas; llamada MCP real con OpenCode y flujo de aprobación en navegador verificados.
+- Correcciones 009/010 completadas con migración SQLite v4 y endurecimiento de proveedores; suite actual: 274 pruebas superadas.
+- Auditoría actualizada en `docs/tasks/auditoria-003-008.md`: candidato a PR pendiente de validación de empaquetado y privacidad. Ninguna iteración funcional adicional se considera completada.
 
 ## 1. Resultado buscado
 
@@ -111,6 +113,18 @@ Aplicación local vacía pero operativa, adaptador MCP y primer adaptador de mod
 - Una caída del proveedor deja el proyecto recuperable.
 - Ninguna credencial aparece en repositorio o logs.
 
+### Estado parcial (tareas 005–008)
+
+La interfaz mínima ya permite crear/listar/seleccionar proyectos, editar y validar `CadSpec`, guardar revisiones con `expected_revision` y revisar estado, diagnósticos, preguntas y JSON. Reutiliza la API y el mismo `ProjectService` que MCP; no duplica reglas.
+
+La tarea 006 añadió carga de PDF, imágenes y texto UTF-8 en un almacén inmutable por SHA-256, con metadatos en SQLite (v3 tras la tarea 008), descarga verificada y un panel para insertar la referencia en el editor. La pantalla ya no dice que la carga no existe, pero sigue sin interpretar el contenido: no extrae texto, vectores, páginas, cotas, escala ni geometría.
+
+La tarea 007 añadió lectura por MCP de metadatos de fuentes y de texto UTF-8, con límite de caracteres y advertencia de contenido no confiable. No añade carga por MCP ni lectura de PDF/imágenes.
+
+La tarea 008 añadió una aprobación humana explícita de alcance `design`, ligada a la revisión y su SHA-256, append-only e idempotente. El estado se calcula como vigente u obsoleto contra la revisión actual y el historial no se borra ni muta. La interfaz exige revisor y confirmación, bloquea el botón con cambios sin guardar o una revisión no actual, y MCP solo permite consultar. Esta aprobación no construye ni sustituye la futura aprobación de construcción con destino, expiración y consumo único.
+
+Todavía no existen trabajos asíncronos, cancelación, aprobación de construcción, proveedor real conectado, registro de prompts ni construcción CAD. La prueba de invocación MCP desde una sesión de agente sigue pendiente. Por tanto, la iteración 1 permanece abierta y la interpretación de fuentes se aborda en la iteración 2.
+
 ## 6. Iteración 2 — PDF a evidencia y escala
 
 **Duración orientativa:** 5–8 días, más 3–5 si AutoCAD entra en P0.
@@ -203,7 +217,7 @@ Orquestador de texto/PDF/imagen, enrutador de modelos y benchmark inicial.
 - Añadir edición de parámetros, supuestos y preguntas con historial.
 - Resaltar en el PDF la evidencia de una cota/operación seleccionada.
 - Mostrar previsualización 3D y comparación de siluetas/vistas.
-- Implementar aprobación ligada al hash de revisión.
+- Completar la aprobación de construcción ligada a revisión, hash, destino y expiración, con consumo único.
 - Ejecutar el piloto con casos no usados durante desarrollo.
 - Medir tiempo ahorrado frente al proceso manual y ediciones necesarias.
 - Redactar guía de uso, límites y recuperación de errores.
