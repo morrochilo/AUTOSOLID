@@ -32,7 +32,7 @@ id_rsa*
 id_ed25519*
 
 # Private source documents and generated CAD artifacts
-artifacts/
+/artifacts/
 corpus/
 data/local/
 output/

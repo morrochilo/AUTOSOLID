@@ -11,6 +11,7 @@ from autosolid.projects import ProjectService, ProjectStore
 
 from .errors import register_error_handlers
 from .routes import router
+from .ui import router as ui_router
 
 
 def create_app(store: ProjectStore | None = None) -> FastAPI:
@@ -33,6 +34,7 @@ def create_app(store: ProjectStore | None = None) -> FastAPI:
     app.state.service = service
     register_error_handlers(app)
     app.include_router(router)
+    app.include_router(ui_router)
     return app
 
 

@@ -13,6 +13,8 @@ dependencies = [
     "pydantic>=2.11,<3",
     "fastapi>=0.115,<1",
     "uvicorn>=0.30,<1",
+    "anyio>=4.5,<5",
+    "mcp>=1.30,<2",
 ]
 
 [project.optional-dependencies]
@@ -24,12 +26,16 @@ dev = [
 [project.scripts]
 autosolid-schema = "autosolid.cad.schema:main"
 autosolid-api = "autosolid.api:main"
+autosolid-mcp = "autosolid.mcp:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"autosolid.api" = ["static/*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
