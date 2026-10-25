@@ -16,6 +16,31 @@ def _reject_non_finite(value: str) -> Any:
     )
 
 
+MAX_JSON_NESTING = 100
+
+
+def ensure_json_nesting(content: str) -> None:
+    depth = 0
+    in_string = False
+    escaped = False
+    for character in content:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+        elif character == '"':
+            in_string = True
+        elif character in "[{":
+            depth += 1
+            if depth > MAX_JSON_NESTING:
+                raise ValueError("JSON supera la profundidad máxima")
+        elif character in "]}":
+            depth -= 1
+
+
 def parse_json_object(content: str) -> dict[str, Any]:
     """Parse one complete JSON object; never repair fences or extra text."""
 
@@ -26,6 +51,7 @@ def parse_json_object(content: str) -> dict[str, Any]:
             details={"reason": "empty_content"},
         )
     try:
+        ensure_json_nesting(content)
         parsed = json.loads(content, parse_constant=_reject_non_finite)
     except json.JSONDecodeError as error:
         raise ProviderError(

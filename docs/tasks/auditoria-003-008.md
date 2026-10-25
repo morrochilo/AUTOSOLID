@@ -4,7 +4,7 @@ Fecha: 2026-10-25
 
 ## Veredicto actualizado
 
-Las correcciones 009/010 resolvieron los hallazgos con regresiones. La suite actual tiene **273 pruebas superadas**, incluida concurrencia de aprobaciones, inmutabilidad de todas las tablas, event loop y proveedores. El conjunto es candidato a PR después de la validación de empaquetado y privacidad.
+Las correcciones 009/010 resolvieron los hallazgos con regresiones. La suite actual tiene **274 pruebas superadas**, incluida concurrencia de aprobaciones, inmutabilidad de todas las tablas, event loop y proveedores con límite portable de anidación JSON. El conjunto es candidato a PR después de la validación de empaquetado y privacidad.
 
 Las tareas 001–002 ya integradas no se reabrieron. Los hallazgos de la tabla siguiente se conservan como registro de la auditoría original; su resolución está documentada en `009-informe.md` y `010-informe.md`.
 

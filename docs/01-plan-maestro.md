@@ -7,7 +7,7 @@
 - Tarea 001 aceptada: núcleo `CadSpec` revisado, 56 pruebas y 11.000 casos geométricos adicionales superados; alcance limitado a líneas/extrusión/revolución.
 - Tarea 002 aceptada: proyectos SQLite, revisiones inmutables y API FastAPI; 86 pruebas y flujo HTTP real superados.
 - Tareas 003–008 implementadas localmente: MCP con 11 herramientas, proveedores, interfaz, fuentes/artefactos y aprobaciones de diseño. Suite actual: 254 pruebas; llamada MCP real con OpenCode y flujo de aprobación en navegador verificados.
-- Correcciones 009/010 completadas con migración SQLite v4 y endurecimiento de proveedores; suite actual: 273 pruebas superadas.
+- Correcciones 009/010 completadas con migración SQLite v4 y endurecimiento de proveedores; suite actual: 274 pruebas superadas.
 - Auditoría actualizada en `docs/tasks/auditoria-003-008.md`: candidato a PR pendiente de validación de empaquetado y privacidad. Ninguna iteración funcional adicional se considera completada.
 
 ## 1. Resultado buscado

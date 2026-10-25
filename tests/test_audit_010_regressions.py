@@ -90,6 +90,7 @@ def test_audit_timeout_is_normalized_for_json():
     [
         b'{"choices": [], "usage": {"prompt_tokens": NaN}}',
         b'{"choices": [], "value":' + b"1" * 5000 + b"}",
+        b'{"x":' + b"[" * 3000 + b"0" + b"]" * 3000 + b"}",
     ],
 )
 def test_audit_envelope_rejects_non_standard_or_pathological_json(body):

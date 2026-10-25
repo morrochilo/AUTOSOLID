@@ -17,7 +17,7 @@ Todos los hallazgos de proveedores de la auditoría 003–008 fueron corregidos 
 
 ## Regresiones
 
-`tests/test_audit_010_regressions.py` contiene 13 casos de auditoría para:
+`tests/test_audit_010_regressions.py` contiene 14 casos de auditoría para:
 
 - enteros largos y anidación;
 - `NaN` en simulador y sobre HTTP;
@@ -26,12 +26,12 @@ Todos los hallazgos de proveedores de la auditoría 003–008 fueron corregidos 
 - delimitadores vacíos y `Fraction`;
 - concurrencia real con 50 llamadas e IDs únicos.
 
-Las diez regresiones iniciales fallaban antes de corregir. Después se añadieron sobre HTTP y concurrencia.
+Las diez regresiones iniciales fallaban antes de corregir. Después se añadieron sobre HTTP y concurrencia. CI detectó que el parser de Linux acepta más anidación que Windows; se añadió un límite explícito y portable de 100 niveles para contenido y sobre HTTP.
 
 ## Verificación
 
-- Proveedores y regresiones focalizadas: **53 pruebas superadas**.
-- Suite completa: **273 pruebas superadas**, una advertencia conocida de Starlette/TestClient.
+- Proveedores y regresiones focalizadas: **54 pruebas superadas**.
+- Suite completa: **274 pruebas superadas**, una advertencia conocida de Starlette/TestClient.
 - `compileall`: correcto.
 - No se llamó a proveedores externos ni se añadieron dependencias.
 

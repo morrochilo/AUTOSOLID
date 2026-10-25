@@ -19,7 +19,7 @@ from autosolid import __version__
 
 from .config import OpenAICompatibleConfig
 from .errors import ProviderError
-from .json_output import parse_json_object
+from .json_output import ensure_json_nesting, parse_json_object
 from .models import (
     CompletionRequest,
     CompletionResponse,
@@ -177,6 +177,7 @@ def _decode_response_body(data: bytes) -> dict[str, Any]:
         raise ValueError(f"Número JSON no finito: {value}")
 
     try:
+        ensure_json_nesting(text)
         parsed = json.loads(text, parse_constant=reject_non_finite)
     except json.JSONDecodeError as error:
         raise ProviderError(
