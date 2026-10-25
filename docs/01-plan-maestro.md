@@ -5,6 +5,7 @@
 - Iteración 0 en curso: hardware y versiones principales registrados en `environment.local.yaml`; ADR-001/002/003 creados.
 - El corpus, las rutas/licencias de pesos y la comprobación runtime de CAD siguen pendientes.
 - Tarea 001 aceptada: núcleo `CadSpec` revisado, 56 pruebas y 11.000 casos geométricos adicionales superados; alcance limitado a líneas/extrusión/revolución.
+- Tarea 002 aceptada: proyectos SQLite, revisiones inmutables y API FastAPI; 86 pruebas y flujo HTTP real superados.
 - Ninguna iteración se considera completada todavía.
 
 ## 1. Resultado buscado

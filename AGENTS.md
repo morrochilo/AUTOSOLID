@@ -23,6 +23,8 @@ Leer `README.md` y los documentos de `docs/` antes de cambiar código. La arquit
 - No afirmar que SolidWorks, AutoCAD, PDF o proveedores fueron verificados si no se ejecutaron realmente.
 - Actualizar documentación que quede desactualizada, sin cambiar el estado de una iteración salvo evidencia completa.
 
-## Primera tarea autorizada
+## Alcance por tarea
 
-El núcleo inicial solo cubre perfiles de líneas, extrusión y revolución. Arcos, cortes, PDF, MCP, UI y agentes CAD quedan para tareas posteriores salvo instrucción expresa.
+Cada tarea delegada debe tener un archivo numerado en `docs/tasks/` con alcance, exclusiones y verificación. El núcleo aceptado cubre perfiles de líneas, extrusión y revolución. No ampliar ese alcance ni modificar su contrato sin una tarea explícita y casos de compatibilidad.
+
+Los agentes no hacen commits ni publican cambios. La integración y publicación requieren revisión y pruebas independientes.
