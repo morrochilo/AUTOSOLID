@@ -49,7 +49,7 @@ La vista principal tendrá cuatro zonas:
 3. **Diseño:** árbol de operaciones y editor de parámetros/croquis.
 4. **Resultado:** previsualización 3D, comparación con las vistas y reporte de validación.
 
-Estado actual: la pantalla cubre proyectos, editor JSON de `CadSpec`, validación, guardado, diagnósticos, preguntas, visor, un panel de fuentes con carga, listado, descarga y referencia manual al editor, y un panel de aprobación de diseño con revisor, confirmación, estado vigente/obsoleto e historial. La zona de fuente todavía no muestra el documento, sus páginas ni evidencias resaltadas; el resultado 3D, la aprobación de construcción y el botón de construcción tampoco existen y no se simulan. Los recursos se sirven con CSP restrictiva y el servidor escucha en loopback por defecto.
+Estado actual: la pantalla cubre proyectos, editor JSON de `CadSpec`, validación, guardado, diagnósticos, preguntas, visor, un panel de fuentes con carga, listado, descarga y referencia manual al editor, y un panel de aprobación de diseño con revisor, confirmación, estado vigente/obsoleto e historial. La zona de fuente todavía no muestra el documento, sus páginas ni evidencias resaltadas; el resultado 3D y la UI de aprobación/construcción tampoco existen y no se simulan. La API de construcción existe desde la tarea 012, pero la interfaz no la consume. Los recursos se sirven con CSP restrictiva y el servidor escucha en loopback por defecto.
 
 Cuando exista, la acción `Construir en SolidWorks` permanecerá deshabilitada si existen errores o ambigüedades críticas. Toda corrección humana se guarda como un nuevo evento, sin sobrescribir la evidencia original.
 
@@ -59,7 +59,7 @@ Python y FastAPI, con modelos Pydantic para los contratos. Orquesta trabajos, ve
 
 SQLite conserva proyectos, estados, configuraciones no secretas y metadatos. Los PDF, imágenes, JSON, DXF, STEP, reportes y SLDPRT se guardan como artefactos content-addressed o con identificadores inmutables.
 
-Estado de implementación (tareas 006, 008 y 009): los PDF, imágenes y textos UTF-8 subidos se guardan por SHA-256 en `AUTOSOLID_DATA_DIR/artifacts/` y se indexan en SQLite v4. Hay deduplicación por proyecto, límite de 20 MiB y lectura con verificación de integridad. El MIME se deriva por fuente y no por el primer proyecto que cargó el blob. Las aprobaciones de diseño se guardan en una tabla append-only con triggers de inmutabilidad y clave única `(proyecto, revisión, alcance)`; su estado se calcula en una instantánea coherente contra la revisión vigente. Todavía no se guardan `DrawingSpec`, DXF, STEP, reportes ni SLDPRT, y no existe recolector de blobs huérfanos.
+Estado de implementación (tareas 006, 008, 009 y 012): los PDF, imágenes y textos UTF-8 subidos se guardan por SHA-256 en `AUTOSOLID_DATA_DIR/artifacts/` y se indexan en SQLite v5. Hay deduplicación por proyecto, límite de 20 MiB y lectura con verificación de integridad. El MIME se deriva por fuente y no por el primer proyecto que cargó el blob. Las aprobaciones de diseño se guardan en una tabla append-only con triggers de inmutabilidad y clave única `(proyecto, revisión, alcance)`; su estado se calcula en una instantánea coherente contra la revisión vigente. Las aprobaciones de construcción viven en `build_approvals`, también append-only, con destino y expiración; `build_consumptions` y `build_jobs` registran el consumo único y los estados `queued/running/completed/failed`. Todavía no se guardan `DrawingSpec`, DXF, STEP ni reportes, y no existe recolector de blobs huérfanos. Los SLDPRT se quedan en el directorio de salida configurado y el trabajo guarda su nombre, SHA-256 y tamaño, no una copia content-addressed.
 
 ### Adaptador MCP
 
@@ -71,7 +71,7 @@ Estado de implementación (tareas 003, 007 y 008): hay once herramientas de solo
 
 ### Agente SolidWorks
 
-Proceso Windows aislado en C#, usando la API COM oficial de SolidWorks/Interop. Se comunica con el backend mediante un canal local autenticado y una cola de trabajos.
+Proceso Windows aislado en C#, usando la API COM oficial de SolidWorks/Interop. Se comunica con el backend mediante un proceso local, argumentos fijos y una cola de trabajos.
 
 - Serializa las operaciones sobre una sesión de SolidWorks.
 - Crea documentos nuevos por defecto; nunca sobrescribe el original sin autorización.
@@ -80,7 +80,9 @@ Proceso Windows aislado en C#, usando la API COM oficial de SolidWorks/Interop. 
 - Exporta reportes y artefactos de comprobación.
 - Usa una versión de .NET y de Interop fijada tras probar la versión real de SolidWorks en la iteración 0.
 
-El agente no contiene prompts ni llama a modelos. Recibe un `CadSpec` validado y una aprobación de construcción con destino, expiración y consumo único; esa aprobación todavía no está implementada.
+El agente no contiene prompts ni llama a modelos. Recibe un `CadSpec` validado y una ruta de salida nueva; la autorización se comprueba antes, en el servicio.
+
+Estado de implementación (tarea 012): Python lanza el ejecutable C# con `subprocess` sin shell, argumentos fijos y timeout, y valida el JSON de stdout antes de publicar el `.sldprt`. La cola es serial por proceso y la aprobación de construcción (`build`) se consume de forma atómica en SQLite. El agente sigue sin aprobar, sin decidir destinos y sin acceso a modelos. No hay canal remoto autenticado todavía; el ejecutable es local. El primer trabajo real verificado terminó `completed` con SolidWorks 2024 (`32.0.1`).
 
 ### Enrutador de modelos
 
@@ -177,7 +179,7 @@ stateDiagram-v2
 
 Las transiciones se registran. Reintentar un trabajo utiliza una clave de idempotencia para no duplicar archivos.
 
-La tarea 008 implementa una **aprobación de diseño** separada de este diagrama: se registra contra una revisión y su SHA-256, se consulta con estado `valid`/`stale` y no provoca la transición a `BUILDING`. La transición `SPEC_READY → APPROVED` sigue reservada para una futura aprobación de construcción con destino, expiración y consumo único.
+La tarea 008 implementa una **aprobación de diseño** separada de este diagrama: se registra contra una revisión y su SHA-256, se consulta con estado `valid`/`stale` y no provoca la transición a `BUILDING`. La tarea 012 añade la **aprobación de construcción** `build`, con destino, expiración y consumo único; solicitar construcción crea un trabajo y pasa por la cola serial, pero no hay máquina de estados de proyecto completa, cancelación ni recuperación automática de trabajos `running` tras un fallo del proceso.
 
 ## 6. Estructura futura del repositorio
 
@@ -211,9 +213,9 @@ Los límites de paquetes pueden simplificarse al inicio; lo importante es que el
 - API keys en variables de entorno o Windows Credential Manager; nunca en JSON de proyecto, prompts, logs o Git.
 - Servicios enlazados a loopback, con token local y lista de rutas permitidas.
 - PDF e imágenes tratados como datos no confiables; su texto nunca se interpreta como instrucciones del sistema.
-- Aprobación explícita para construir, exportar, sobrescribir o enviar documentos a un proveedor externo.
+- Aprobación explícita para construir, exportar, sobrescribir o enviar documentos a un proveedor externo. Estado actual: construcción cubierta por aprobación `build` de un solo uso; exportar/proveedor siguen pendientes.
 - Modo local para planos confidenciales y aviso visible antes de usar nube.
-- Límites de tamaño/páginas, cancelación de trabajos, timeouts y cuarentena de documentos problemáticos. Estado actual: hay un límite de 20 MiB por fuente y rechazo por firma/codificación, pero no hay límite de páginas, cancelación, timeouts de análisis ni cuarentena.
+- Límites de tamaño/páginas, cancelación de trabajos, timeouts y cuarentena de documentos problemáticos. Estado actual: hay un límite de 20 MiB por fuente, rechazo por firma/codificación y timeout del runner de construcción; no hay límite de páginas, cancelación, timeouts de análisis ni cuarentena.
 - Backups y nombres únicos; SolidWorks y AutoCAD no operan sobre el único original.
 - Licencias de modelos, pesos, LoRA, datos de entrenamiento y bibliotecas registradas antes de distribuir.
 

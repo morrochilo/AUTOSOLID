@@ -14,15 +14,26 @@ from .routes import router
 from .ui import router as ui_router
 
 
-def create_app(store: ProjectStore | None = None) -> FastAPI:
-    project_store = ProjectStore.from_env() if store is None else store
-    service = ProjectService(project_store)
+def create_app(
+    store: ProjectStore | None = None,
+    *,
+    service: ProjectService | None = None,
+) -> FastAPI:
+    if store is None and service is not None:
+        project_store = service.store
+    else:
+        project_store = ProjectStore.from_env() if store is None else store
+    project_service = (
+        ProjectService(project_store) if service is None else service
+    )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        project_service.recover_incomplete_build_jobs()
         try:
             yield
         finally:
+            project_service.shutdown()
             project_store.close()
 
     app = FastAPI(
@@ -31,7 +42,7 @@ def create_app(store: ProjectStore | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.store = project_store
-    app.state.service = service
+    app.state.service = project_service
     register_error_handlers(app)
     app.include_router(router)
     app.include_router(ui_router)

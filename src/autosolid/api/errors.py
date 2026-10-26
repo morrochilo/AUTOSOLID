@@ -13,8 +13,18 @@ from autosolid.projects.exceptions import (
     ApprovalBlockedError,
     ApprovalHashMismatchError,
     ApprovalNotFoundError,
+    BuildApprovalConsumedError,
+    BuildApprovalExpiredError,
+    BuildApprovalNotFoundError,
+    BuildApprovalStaleError,
+    BuildDestinationError,
+    BuildDestinationMismatchError,
+    BuildJobConflictError,
+    BuildJobNotFoundError,
     CadspecNotFoundError,
     InvalidApprovalError,
+    InvalidBuildApprovalError,
+    InvalidBuildRequestError,
     InvalidProjectNameError,
     InvalidRevisionError,
     InvalidSourceError,
@@ -229,6 +239,135 @@ def register_error_handlers(app: FastAPI) -> None:
             "APPROVAL_BLOCKED",
             "La revisión no cumple las condiciones para aprobarse.",
             _diagnostic_details_from_list(error.diagnostics),
+        )
+
+    @app.exception_handler(InvalidBuildApprovalError)
+    async def _invalid_build_approval(
+        _: Request, error: InvalidBuildApprovalError
+    ) -> JSONResponse:
+        return error_response(
+            422,
+            "INVALID_BUILD_APPROVAL",
+            error.message,
+            {"reason": error.reason},
+        )
+
+    @app.exception_handler(InvalidBuildRequestError)
+    async def _invalid_build_request(
+        _: Request, error: InvalidBuildRequestError
+    ) -> JSONResponse:
+        return error_response(
+            422,
+            "INVALID_BUILD_REQUEST",
+            error.message,
+            {"reason": error.reason},
+        )
+
+    @app.exception_handler(BuildApprovalNotFoundError)
+    async def _build_approval_not_found(
+        _: Request, error: BuildApprovalNotFoundError
+    ) -> JSONResponse:
+        return error_response(
+            404,
+            "BUILD_APPROVAL_NOT_FOUND",
+            "La aprobación de construcción solicitada no existe.",
+            {
+                "project_id": error.project_id,
+                "approval_id": error.approval_id,
+            },
+        )
+
+    @app.exception_handler(BuildApprovalExpiredError)
+    async def _build_approval_expired(
+        _: Request, error: BuildApprovalExpiredError
+    ) -> JSONResponse:
+        return error_response(
+            409,
+            "BUILD_APPROVAL_EXPIRED",
+            "La aprobación de construcción ha expirado.",
+            {
+                "project_id": error.project_id,
+                "approval_id": error.approval_id,
+            },
+        )
+
+    @app.exception_handler(BuildApprovalConsumedError)
+    async def _build_approval_consumed(
+        _: Request, error: BuildApprovalConsumedError
+    ) -> JSONResponse:
+        return error_response(
+            409,
+            "BUILD_APPROVAL_CONSUMED",
+            "La aprobación de construcción ya fue consumida.",
+            {
+                "project_id": error.project_id,
+                "approval_id": error.approval_id,
+            },
+        )
+
+    @app.exception_handler(BuildApprovalStaleError)
+    async def _build_approval_stale(
+        _: Request, error: BuildApprovalStaleError
+    ) -> JSONResponse:
+        return error_response(
+            409,
+            "BUILD_APPROVAL_STALE",
+            "La aprobación de construcción no corresponde a la revisión vigente.",
+            {
+                "project_id": error.project_id,
+                "revision": error.revision,
+                "current_revision": error.current_revision,
+            },
+        )
+
+    @app.exception_handler(BuildDestinationError)
+    async def _build_destination(
+        _: Request, error: BuildDestinationError
+    ) -> JSONResponse:
+        return error_response(
+            422,
+            "INVALID_BUILD_DESTINATION",
+            error.message,
+            {"reason": error.reason},
+        )
+
+    @app.exception_handler(BuildDestinationMismatchError)
+    async def _build_destination_mismatch(
+        _: Request, error: BuildDestinationMismatchError
+    ) -> JSONResponse:
+        return error_response(
+            409,
+            "BUILD_DESTINATION_MISMATCH",
+            "El destino no coincide con el autorizado.",
+            {
+                "project_id": error.project_id,
+                "approval_id": error.approval_id,
+            },
+        )
+
+    @app.exception_handler(BuildJobNotFoundError)
+    async def _build_job_not_found(
+        _: Request, error: BuildJobNotFoundError
+    ) -> JSONResponse:
+        return error_response(
+            404,
+            "BUILD_JOB_NOT_FOUND",
+            "El trabajo de construcción solicitado no existe.",
+            {
+                "project_id": error.project_id,
+                "job_id": error.job_id,
+            },
+        )
+
+    @app.exception_handler(BuildJobConflictError)
+    async def _build_job_conflict(
+        _: Request, error: BuildJobConflictError
+    ) -> JSONResponse:
+        return error_response(
+            409,
+            "BUILD_JOB_CONFLICT",
+            error.message,
+            {"reason": error.reason},
         )
 
     @app.exception_handler(StoreError)

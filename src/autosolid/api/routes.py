@@ -10,6 +10,8 @@ from fastapi import APIRouter, Body, Depends, Query, Request, Response
 
 from autosolid.projects import (
     ApprovalInfo,
+    BuildApprovalInfo,
+    BuildJobInfo,
     ProjectRecord,
     ProjectService,
     SourceRecord,
@@ -18,7 +20,12 @@ from autosolid.projects import (
 )
 
 from .errors import ApiRequestError
-from .schemas import ApprovalCreateRequest, ProjectCreateRequest
+from .schemas import (
+    ApprovalCreateRequest,
+    BuildApprovalCreateRequest,
+    BuildRequest,
+    ProjectCreateRequest,
+)
 
 router = APIRouter(prefix="/api/v1")
 
@@ -64,6 +71,61 @@ def _approval_payload(approval: ApprovalInfo) -> dict[str, Any]:
         "note": approval.note,
         "created_at": approval.created_at,
         "status": approval.status,
+    }
+
+
+def _build_approval_payload(approval: BuildApprovalInfo) -> dict[str, Any]:
+    return {
+        "id": approval.id,
+        "project_id": approval.project_id,
+        "revision": approval.revision,
+        "revision_sha256": approval.revision_sha256,
+        "scope": approval.scope,
+        "approved_by": approval.approved_by,
+        "note": approval.note,
+        "destination": approval.destination,
+        "destination_hash": approval.destination_hash,
+        "created_at": approval.created_at,
+        "expires_at": approval.expires_at,
+        "status": approval.status,
+        "consumed_at": approval.consumed_at,
+        "job_id": approval.job_id,
+    }
+
+
+def _build_job_payload(job: BuildJobInfo) -> dict[str, Any]:
+    return {
+        "id": job.id,
+        "project_id": job.project_id,
+        "revision": job.revision,
+        "revision_sha256": job.revision_sha256,
+        "approval_id": job.approval_id,
+        "idempotency_key": job.idempotency_key,
+        "destination": job.destination,
+        "destination_hash": job.destination_hash,
+        "state": job.state,
+        "attempt": job.attempt,
+        "created_at": job.created_at,
+        "updated_at": job.updated_at,
+        "started_at": job.started_at,
+        "finished_at": job.finished_at,
+        "error": (
+            None
+            if job.error_code is None
+            else {
+                "code": job.error_code,
+                "message": job.error_message,
+            }
+        ),
+        "artifact": (
+            None
+            if job.artifact_name is None
+            else {
+                "name": job.artifact_name,
+                "sha256": job.artifact_sha256,
+                "byte_size": job.artifact_byte_size,
+            }
+        ),
     }
 
 
@@ -333,3 +395,101 @@ def get_approval(
     service: ServiceDep,
 ) -> dict[str, Any]:
     return _approval_payload(service.get_approval(project_id, approval_id))
+
+
+@router.post("/projects/{project_id}/build-approvals", status_code=201)
+def create_build_approval(
+    project_id: str,
+    request: BuildApprovalCreateRequest,
+    service: ServiceDep,
+    response: Response,
+) -> dict[str, Any]:
+    approval = service.create_build_approval(
+        project_id,
+        request.revision,
+        request.sha256,
+        request.approved_by,
+        request.destination,
+        expires_in_seconds=request.expires_in_seconds,
+        note=request.note,
+    )
+    response.headers["Location"] = (
+        f"/api/v1/projects/{project_id}/build-approvals/{approval.id}"
+    )
+    return _build_approval_payload(approval)
+
+
+@router.get("/projects/{project_id}/build-approvals")
+def list_build_approvals(
+    project_id: str,
+    service: ServiceDep,
+) -> list[dict[str, Any]]:
+    return [
+        _build_approval_payload(approval)
+        for approval in service.list_build_approvals(project_id)
+    ]
+
+
+@router.get("/projects/{project_id}/build-approvals/{approval_id}")
+def get_build_approval(
+    project_id: str,
+    approval_id: str,
+    service: ServiceDep,
+) -> dict[str, Any]:
+    return _build_approval_payload(
+        service.get_build_approval(project_id, approval_id)
+    )
+
+
+@router.post("/projects/{project_id}/builds", status_code=202)
+def request_build(
+    project_id: str,
+    request: BuildRequest,
+    service: ServiceDep,
+    response: Response,
+) -> dict[str, Any]:
+    job, created = service.request_build(
+        project_id,
+        request.approval_id,
+        request.destination,
+        request.idempotency_key,
+    )
+    response.status_code = 202 if created else 200
+    response.headers["Location"] = (
+        f"/api/v1/projects/{project_id}/builds/{job.id}"
+    )
+    return _build_job_payload(job)
+
+
+@router.get("/projects/{project_id}/builds")
+def list_builds(
+    project_id: str,
+    service: ServiceDep,
+) -> list[dict[str, Any]]:
+    return [
+        _build_job_payload(job) for job in service.list_build_jobs(project_id)
+    ]
+
+
+@router.get("/projects/{project_id}/builds/{job_id}")
+def get_build(
+    project_id: str,
+    job_id: str,
+    service: ServiceDep,
+) -> dict[str, Any]:
+    return _build_job_payload(service.get_build_job(project_id, job_id))
+
+
+@router.post("/projects/{project_id}/builds/{job_id}/retry", status_code=202)
+def retry_build(
+    project_id: str,
+    job_id: str,
+    service: ServiceDep,
+    response: Response,
+) -> dict[str, Any]:
+    job, changed = service.retry_build_job(project_id, job_id)
+    response.status_code = 202 if changed else 200
+    response.headers["Location"] = (
+        f"/api/v1/projects/{project_id}/builds/{job.id}"
+    )
+    return _build_job_payload(job)

@@ -9,7 +9,8 @@
 - Tareas 003–008 implementadas localmente: MCP con 11 herramientas, proveedores, interfaz, fuentes/artefactos y aprobaciones de diseño. Suite actual: 254 pruebas; llamada MCP real con OpenCode y flujo de aprobación en navegador verificados.
 - Correcciones 009/010 completadas con migración SQLite v4 y endurecimiento de proveedores; suite actual: 274 pruebas superadas.
 - Tareas 003–010 integradas en `main` mediante PR #2, con CI verde y auditoría actualizada en `docs/tasks/auditoria-003-008.md`.
-- Tarea 011 verificada en SolidWorks 2024: agente C# construye y reabre un bloque y un cilindro desde `CadSpec`, con volumen esperado/medido exacto y rechazo de sobrescritura. Pendiente integrar cola/aprobación con el servicio.
+- Tarea 011 integrada en `main` mediante PR #3: agente C# construye y reabre un bloque y un cilindro desde `CadSpec`, con volumen esperado/medido exacto y rechazo de sobrescritura.
+- Tareas 012–014 verificadas: cola serial, aprobación `build` de un solo uso, publicación exclusiva y recuperación. Suite actual: 373 pruebas y trabajo real SolidWorks completado. Auditoría en `docs/tasks/auditoria-build-012-014.md`.
 
 ## 1. Resultado buscado
 
@@ -122,9 +123,9 @@ La tarea 006 añadió carga de PDF, imágenes y texto UTF-8 en un almacén inmut
 
 La tarea 007 añadió lectura por MCP de metadatos de fuentes y de texto UTF-8, con límite de caracteres y advertencia de contenido no confiable. No añade carga por MCP ni lectura de PDF/imágenes.
 
-La tarea 008 añadió una aprobación humana explícita de alcance `design`, ligada a la revisión y su SHA-256, append-only e idempotente. El estado se calcula como vigente u obsoleto contra la revisión actual y el historial no se borra ni muta. La interfaz exige revisor y confirmación, bloquea el botón con cambios sin guardar o una revisión no actual, y MCP solo permite consultar. Esta aprobación no construye ni sustituye la futura aprobación de construcción con destino, expiración y consumo único.
+La tarea 008 añadió una aprobación humana explícita de alcance `design`, ligada a la revisión y su SHA-256, append-only e idempotente. El estado se calcula como vigente u obsoleto contra la revisión actual y el historial no se borra ni muta. La interfaz exige revisor y confirmación, bloquea el botón con cambios sin guardar o una revisión no actual, y MCP solo permite consultar. La tarea 012 añadió una aprobación `build` separada, de un solo uso, con destino, expiración y consumo atómico, además de una cola serial y un runner local del agente C#, expuestos por la API local pero no por MCP ni por la UI.
 
-Todavía no existen trabajos asíncronos, cancelación, aprobación de construcción, proveedor real conectado, registro de prompts ni construcción CAD. La prueba de invocación MCP desde una sesión de agente sigue pendiente. Por tanto, la iteración 1 permanece abierta y la interpretación de fuentes se aborda en la iteración 2.
+Todavía no existen cancelación, proveedor real conectado, registro de prompts, UI/MCP de construcción ni recuperación automática de trabajos interrumpidos. La prueba de invocación MCP desde una sesión de agente sigue pendiente. Por tanto, la iteración 1 permanece abierta y la interpretación de fuentes se aborda en la iteración 2.
 
 ## 6. Iteración 2 — PDF a evidencia y escala
 
