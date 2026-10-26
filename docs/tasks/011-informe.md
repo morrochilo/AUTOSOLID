@@ -22,7 +22,7 @@ La integración usa `CadSpec` directo, sin API/MCP/UI ni aprobación de construc
 | Bloque 40×20×10 mm | SLDPRT abierto y reconstruido | 0.000008 m³ | 0.000008 m³ | 0 |
 | Cilindro Ø50×80 mm | SLDPRT abierto y reconstruido | 0.00015707963267948965 m³ | igual | 0 |
 
-- `dotnet build`: sin errores ni advertencias.
+- `dotnet build`: sin errores ni advertencias en el equipo con Interop instalado. El job .NET de GitHub se retiró porque los runners alojados no tienen las DLL propietarias; no se incluyen binarios ni stubs.
 - `version`: conexión real y revisión `32.0.1`.
 - `build`: errores 0 y warnings 0 para ambas piezas.
 - `verify`: reapertura y reconstrucción correctas; `OpenDoc6` reportó warning 128, que queda visible en el resultado y no se oculta.
