@@ -66,7 +66,7 @@ def test_schema_version_and_migration_are_recorded(tmp_path):
             "SELECT version FROM schema_migrations ORDER BY version"
         ).fetchall()
     assert version == SCHEMA_VERSION
-    assert migrations == [(1,), (2,), (3,), (4,)]
+    assert migrations == [(1,), (2,), (3,), (4,), (5,)]
     store.close()
 
     reopened = ProjectStore(tmp_path / "data")
@@ -74,7 +74,7 @@ def test_schema_version_and_migration_are_recorded(tmp_path):
         assert connection.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         assert connection.execute(
             "SELECT COUNT(*) FROM schema_migrations"
-        ).fetchone()[0] == 4
+        ).fetchone()[0] == 5
     reopened.close()
 
 

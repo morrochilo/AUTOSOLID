@@ -7,7 +7,7 @@ Sistema local asistido por IA para convertir planos PDF, texto e imágenes en pi
 
 ## Estado
 
-**Fase actual: desarrollo inicial.** El núcleo `CadSpec`, proyectos/API, MCP, proveedores, interfaz local, fuentes y aprobaciones de diseño están auditados e integrados en `main`. El agente C# ya construye y verifica SLDPRT reales desde `CadSpec` para una extrusión o revolución de líneas, sin conexión todavía con API/MCP/UI. PDF/OCR/DXF, integración de modelos con el dominio y AutoCAD siguen pendientes. No se afirma precisión mecánica de extremo a extremo.
+**Fase actual: desarrollo inicial.** El núcleo `CadSpec`, proyectos/API, MCP, proveedores, interfaz local, fuentes y aprobaciones de diseño están auditados e integrados en `main`. El agente C# ya construye y verifica SLDPRT reales desde `CadSpec` para una extrusión o revolución de líneas. Las tareas 012–014 conectan el servicio Python con ese agente mediante aprobación de construcción de un solo uso, cola serial y publicación exclusiva; todavía no hay MCP ni UI de construcción. PDF/OCR/DXF, integración de modelos con el dominio y AutoCAD siguen pendientes. No se afirma precisión mecánica de extremo a extremo.
 
 El objetivo no es que un modelo “adivine” una pieza y la escriba directamente en SolidWorks. El sistema debe extraer evidencia, construir una especificación CAD explícita, validarla, permitir corregirla y recién entonces crear el archivo nativo.
 
@@ -86,7 +86,7 @@ autosolid-api
 # Documentación interactiva: http://127.0.0.1:8000/docs
 ```
 
-La API crea proyectos, valida especificaciones, guarda revisiones inmutables, almacena fuentes content-addressed y registra aprobaciones de diseño en `.autosolid/`. Usar `AUTOSOLID_DATA_DIR` para otro directorio local. No exponer el servicio a Internet; todavía no incorpora autenticación remota ni construcción CAD.
+La API crea proyectos, valida especificaciones, guarda revisiones inmutables, almacena fuentes content-addressed y registra aprobaciones de diseño y construcción en `.autosolid/`. Usar `AUTOSOLID_DATA_DIR` para otro directorio local. No exponer el servicio a Internet; todavía no incorpora autenticación remota. La construcción CAD es local, serial y exige una aprobación `build` explícita.
 
 Endpoints de fuentes bajo `/api/v1`:
 
@@ -100,6 +100,29 @@ Endpoints de aprobaciones de diseño bajo `/api/v1`:
 - `POST /projects/{project_id}/approvals` con `revision`, `sha256`, `scope: "design"`, `approved_by` y `note` opcional.
 - `GET /projects/{project_id}/approvals`.
 - `GET /projects/{project_id}/approvals/{approval_id}`.
+
+Endpoints de construcción bajo `/api/v1`:
+
+- `POST /projects/{project_id}/build-approvals` con `revision`, `sha256`, `approved_by`, `destination`, `expires_in_seconds` opcional y `note` opcional.
+- `GET /projects/{project_id}/build-approvals` y `GET /projects/{project_id}/build-approvals/{approval_id}`.
+- `POST /projects/{project_id}/builds` con `approval_id`, `destination` e `idempotency_key`.
+- `GET /projects/{project_id}/builds` y `GET /projects/{project_id}/builds/{job_id}`.
+- `POST /projects/{project_id}/builds/{job_id}/retry` para reencolar un trabajo fallido sin consumir otra vez la aprobación.
+
+## Construcción en SolidWorks
+
+La tarea 012 conecta el servicio con el agente C# existente mediante una aprobación `build` de un solo uso y una cola serial por proceso. La aprobación se liga al proyecto, la revisión vigente, el SHA-256 del `CadSpec` y un hash del destino relativo; expira y se consume en la misma transacción que crea el trabajo. El destino debe ser un `.sldprt` nuevo dentro del directorio configurado.
+
+Variables locales:
+
+- `AUTOSOLID_BUILD_DIR`: directorio de salida; por defecto `AUTOSOLID_DATA_DIR/builds`.
+- `AUTOSOLID_SOLIDWORKS_AGENT`: ruta del ejecutable `autosolid-solidworks`; si falta, los trabajos fallan con `SOLIDWORKS_NOT_CONFIGURED`.
+- `AUTOSOLID_SOLIDWORKS_TIMEOUT`: timeout del agente en segundos; por defecto 120.
+- `AUTOSOLID_SOLIDWORKS_MAX_OUTPUT`: límite de captura de stdout/stderr en bytes; por defecto 65 536.
+
+El runner usa `subprocess` sin shell, argumentos fijos `build <spec> <output>`, timeout y captura acotada. Solo publica el archivo si el JSON declara `status=ok`, `rebuildSucceeded=true`, `errors=0`, volumen finito y diferencia de volumen dentro de `1e-9 m³`. Los estados de trabajo son `queued/running/completed/failed`; incluyen clave de idempotencia, timestamps, error estable y metadatos del artefacto.
+
+No se expone construcción por MCP ni hay botón de construcción en la UI. Los trabajos en curso viven en una cola en memoria; SQLite conserva el estado. El cierre espera al trabajo activo antes de cerrar el almacén. Al iniciar, un trabajo `running` se reconcilia: si el artefacto ya publicado coincide con el hash preparado se marca `completed`; si no, queda como fallo recuperable. Un trabajo `queued` puede reencolarse con `retry` tras reiniciar el proceso. Informe real: [`docs/tasks/012-informe.md`](docs/tasks/012-informe.md); endurecimiento y recuperación: [`docs/tasks/013-informe.md`](docs/tasks/013-informe.md).
 
 ## Interfaz local de revisión
 
@@ -134,8 +157,8 @@ La tarea 008 añadió una aprobación humana explícita, inmutable y append-only
 - La creación es idempotente por `(proyecto, revisión, alcance)`: repetir la solicitud devuelve el registro existente sin reescribir autor ni nota.
 - El estado se calcula como `valid` o `stale` contra la revisión vigente. Cambiar de revisión invalida automáticamente la aprobación anterior sin borrar ni mutar el historial.
 - Los registros no se pueden editar ni borrar; no hay revocación, expiración, destino ni consumo único en esta tarea.
-- La aprobación es de alcance `design` y **no autoriza construir**. La aprobación de construcción del ADR-003 sigue pendiente.
-- MCP solo expone `autosolid_approval_list` y `autosolid_approval_get`; no existe herramienta para aprobar, revocar o consumir.
+- La aprobación es de alcance `design` y **no autoriza construir**. La construcción usa una aprobación `build` separada, de un solo uso, con destino y expiración (tarea 012).
+- MCP solo expone `autosolid_approval_list` y `autosolid_approval_get`; no existe herramienta para aprobar, revocar o consumir. La lista solo devuelve aprobaciones de diseño.
 
 Informe local: [`docs/tasks/008-informe.md`](docs/tasks/008-informe.md).
 
@@ -147,7 +170,7 @@ autosolid-mcp
 # usa AUTOSOLID_DATA_DIR o .autosolid/ por defecto
 ```
 
-El servidor habla MCP `stdio`, reutiliza el mismo `ProjectService` y expone once herramientas: crear/listar/leer proyectos, leer/validar/guardar revisiones `CadSpec`, listar/leer metadatos o texto de fuentes y listar/leer aprobaciones de diseño. `autosolid_design_validate` no persiste; `autosolid_design_update` exige `expected_revision`. `autosolid_source_read_text` solo devuelve fuentes de tipo texto, truncadas a `max_chars`, y trata su contenido como dato no confiable. `autosolid_approval_list` y `autosolid_approval_get` son de solo lectura. No escribe logs en `stdout`.
+El servidor habla MCP `stdio`, reutiliza el mismo `ProjectService` y expone once herramientas: crear/listar/leer proyectos, leer/validar/guardar revisiones `CadSpec`, listar/leer metadatos o texto de fuentes y listar/leer aprobaciones de diseño. `autosolid_design_validate` no persiste; `autosolid_design_update` exige `expected_revision`. `autosolid_source_read_text` solo devuelve fuentes de tipo texto, truncadas a `max_chars`, y trata su contenido como dato no confiable. `autosolid_approval_list` y `autosolid_approval_get` son de solo lectura. No hay herramientas de construcción ni de trabajos. No escribe logs en `stdout`.
 
 - Ejemplo para OpenCode 1.19.4: [`examples/opencode-mcp.example.json`](examples/opencode-mcp.example.json).
 - Ejemplo para OpenCode V2 (`mcp.servers`): [`examples/opencode-mcp-v2.example.json`](examples/opencode-mcp-v2.example.json).

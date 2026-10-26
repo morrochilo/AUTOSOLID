@@ -126,6 +126,97 @@ class ApprovalBlockedError(ProjectError):
         self.diagnostics = list(diagnostics)
 
 
+class InvalidBuildApprovalError(ProjectError):
+    def __init__(self, message: str, *, reason: str = "invalid") -> None:
+        super().__init__(message)
+        self.message = message
+        self.reason = reason
+
+
+class InvalidBuildRequestError(ProjectError):
+    def __init__(self, message: str, *, reason: str = "invalid") -> None:
+        super().__init__(message)
+        self.message = message
+        self.reason = reason
+
+
+class BuildApprovalNotFoundError(ProjectError):
+    def __init__(self, project_id: str, approval_id: str) -> None:
+        super().__init__(
+            f"El proyecto '{project_id}' no tiene la aprobación de construcción "
+            f"'{approval_id}'."
+        )
+        self.project_id = project_id
+        self.approval_id = approval_id
+
+
+class BuildApprovalExpiredError(ProjectError):
+    def __init__(self, project_id: str, approval_id: str) -> None:
+        super().__init__(
+            "La aprobación de construcción ha expirado y no puede consumirse."
+        )
+        self.project_id = project_id
+        self.approval_id = approval_id
+
+
+class BuildApprovalConsumedError(ProjectError):
+    def __init__(self, project_id: str, approval_id: str) -> None:
+        super().__init__(
+            "La aprobación de construcción ya fue consumida por otro trabajo."
+        )
+        self.project_id = project_id
+        self.approval_id = approval_id
+
+
+class BuildApprovalStaleError(ProjectError):
+    def __init__(
+        self,
+        project_id: str,
+        revision: int,
+        *,
+        current_revision: int,
+    ) -> None:
+        super().__init__(
+            "La aprobación de construcción no corresponde a la revisión vigente."
+        )
+        self.project_id = project_id
+        self.revision = revision
+        self.current_revision = current_revision
+
+
+class BuildDestinationError(ProjectError):
+    def __init__(self, message: str, *, reason: str = "invalid") -> None:
+        super().__init__(message)
+        self.message = message
+        self.reason = reason
+
+
+class BuildDestinationMismatchError(ProjectError):
+    def __init__(self, project_id: str, approval_id: str) -> None:
+        super().__init__(
+            "El destino solicitado no coincide con el autorizado por la aprobación."
+        )
+        self.project_id = project_id
+        self.approval_id = approval_id
+
+
+class BuildJobNotFoundError(ProjectError):
+    def __init__(self, project_id: str, job_id: str) -> None:
+        super().__init__(
+            f"El proyecto '{project_id}' no tiene el trabajo de construcción "
+            f"'{job_id}'."
+        )
+        self.project_id = project_id
+        self.job_id = job_id
+
+
+class BuildJobConflictError(ProjectError):
+    def __init__(self, message: str, *, reason: str = "conflict") -> None:
+        super().__init__(message)
+        self.message = message
+        self.reason = reason
+
+
 class StoreError(ProjectError):
     """Storage could not complete an operation."""
 

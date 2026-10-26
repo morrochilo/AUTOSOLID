@@ -247,7 +247,7 @@ def test_v1_database_migrates_to_current_schema(tmp_path):
         assert connection.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         assert connection.execute(
             "SELECT version FROM schema_migrations ORDER BY version"
-        ).fetchall() == [(1,), (2,), (3,), (4,)]
+        ).fetchall() == [(1,), (2,), (3,), (4,), (5,)]
         tables = {
             row[0]
             for row in connection.execute(

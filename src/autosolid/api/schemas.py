@@ -21,3 +21,22 @@ class ApprovalCreateRequest(BaseModel):
     scope: Literal["design"] = "design"
     approved_by: StrictStr = Field(min_length=1, max_length=120)
     note: StrictStr | None = Field(default=None, max_length=2_000)
+
+
+class BuildApprovalCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    revision: StrictInt = Field(ge=1)
+    sha256: StrictStr = Field(min_length=64, max_length=64)
+    approved_by: StrictStr = Field(min_length=1, max_length=120)
+    destination: StrictStr = Field(min_length=1, max_length=512)
+    expires_in_seconds: StrictInt | None = Field(default=None, ge=30, le=3_600)
+    note: StrictStr | None = Field(default=None, max_length=2_000)
+
+
+class BuildRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    approval_id: StrictStr = Field(min_length=1, max_length=120)
+    destination: StrictStr = Field(min_length=1, max_length=512)
+    idempotency_key: StrictStr = Field(min_length=8, max_length=128)
