@@ -14,6 +14,8 @@ build/
 .coverage
 htmlcov/
 node_modules/
+**/bin/
+**/obj/
 
 # Credentials and machine-local configuration
 .env

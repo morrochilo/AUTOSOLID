@@ -8,7 +8,8 @@
 - Tarea 002 aceptada: proyectos SQLite, revisiones inmutables y API FastAPI; 86 pruebas y flujo HTTP real superados.
 - Tareas 003–008 implementadas localmente: MCP con 11 herramientas, proveedores, interfaz, fuentes/artefactos y aprobaciones de diseño. Suite actual: 254 pruebas; llamada MCP real con OpenCode y flujo de aprobación en navegador verificados.
 - Correcciones 009/010 completadas con migración SQLite v4 y endurecimiento de proveedores; suite actual: 274 pruebas superadas.
-- Auditoría actualizada en `docs/tasks/auditoria-003-008.md`: candidato a PR pendiente de validación de empaquetado y privacidad. Ninguna iteración funcional adicional se considera completada.
+- Tareas 003–010 integradas en `main` mediante PR #2, con CI verde y auditoría actualizada en `docs/tasks/auditoria-003-008.md`.
+- Tarea 011 verificada en SolidWorks 2024: agente C# construye y reabre un bloque y un cilindro desde `CadSpec`, con volumen esperado/medido exacto y rechazo de sobrescritura. Pendiente integrar cola/aprobación con el servicio.
 
 ## 1. Resultado buscado
 
