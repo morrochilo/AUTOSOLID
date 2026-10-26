@@ -7,7 +7,7 @@ Sistema local asistido por IA para convertir planos PDF, texto e imágenes en pi
 
 ## Estado
 
-**Fase actual: desarrollo inicial.** El núcleo `CadSpec` y el servicio local de proyectos/API están auditados. La fachada MCP local `stdio`, la capa de proveedores (simulado y OpenAI-compatible), una interfaz local mínima de revisión, un almacén inmutable de fuentes (PDF, imágenes y texto) y un registro inmutable de aprobaciones de diseño ligadas a revisión y SHA-256 están implementados y probados localmente, pendientes de auditoría independiente. La extracción de PDF/imágenes, la integración de proveedores con el dominio y la construcción en SolidWorks/AutoCAD todavía no están implementadas ni verificadas. No se afirma precisión mecánica de extremo a extremo.
+**Fase actual: desarrollo inicial.** El núcleo `CadSpec`, proyectos/API, MCP, proveedores, interfaz local, fuentes y aprobaciones de diseño están auditados e integrados en `main`. El agente C# ya construye y verifica SLDPRT reales desde `CadSpec` para una extrusión o revolución de líneas, sin conexión todavía con API/MCP/UI. PDF/OCR/DXF, integración de modelos con el dominio y AutoCAD siguen pendientes. No se afirma precisión mecánica de extremo a extremo.
 
 El objetivo no es que un modelo “adivine” una pieza y la escriba directamente en SolidWorks. El sistema debe extraer evidencia, construir una especificación CAD explícita, validarla, permitir corregirla y recién entonces crear el archivo nativo.
 
